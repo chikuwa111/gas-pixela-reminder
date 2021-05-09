@@ -8,20 +8,36 @@ function main() {
     SLACK_TOKEN,
   } = scriptProperties;
 
-  const quantity = getPixelaQuantity({
-    username: PIXELA_USERNAME,
-    graphID: PIXELA_GRAPH_ID,
-    date: new Date(),
-    token: PIXELA_TOKEN,
-  });
+  const { shouldPostMessage, text } = (() => {
+    try {
+      const quantity = getPixelaQuantity({
+        username: PIXELA_USERNAME,
+        graphID: PIXELA_GRAPH_ID,
+        date: new Date(),
+        token: PIXELA_TOKEN,
+      });
 
-  if (quantity > 0) return;
+      return quantity > 0
+        ? { shouldPostMessage: false, text: "" }
+        : {
+            shouldPostMessage: true,
+            text: `${PIXELA_GRAPH_ID}のquantityがまだ0です！`,
+          };
+    } catch {
+      return {
+        shouldPostMessage: true,
+        text: `${PIXELA_GRAPH_ID}のquantityの取得に失敗しました。今日はまだ更新がない可能性があります。`,
+      };
+    }
+  })();
 
-  postSlackMessage({
-    channelId: SLACK_CHANNEL_ID,
-    token: SLACK_TOKEN,
-    text: `${PIXELA_GRAPH_ID}のquantityがまだ0です！`,
-  });
+  if (shouldPostMessage) {
+    postSlackMessage({
+      channelId: SLACK_CHANNEL_ID,
+      token: SLACK_TOKEN,
+      text,
+    });
+  }
 }
 
 const getPixelaQuantity = ({
